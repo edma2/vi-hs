@@ -1,5 +1,6 @@
 module Editor where
 
+import Data.Char (isSpace)
 import UI.HSCurses.Curses
 import Zipper
 
@@ -16,6 +17,10 @@ mkBuf = mkZipper
 nextChar, prevChar :: Buf -> Buf
 nextChar = right
 prevChar = left
+
+nextWord, prevWord :: Buf -> Buf
+nextWord = nextChar . rightUntil isSpace
+prevWord = nextChar . leftUntil isSpace
 
 insertChar :: Char -> Buf -> Buf
 insertChar = insert
@@ -66,6 +71,8 @@ runCmd 'i' = insertLoop . prevChar
 runCmd 'a' = insertLoop
 runCmd '0' = normalLoop . firstChar
 runCmd '$' = normalLoop . lastChar
+runCmd 'w' = normalLoop . nextWord
+runCmd 'b' = normalLoop . prevWord
 runCmd _ = return -- quit
 
 insertLoop buf = do
