@@ -19,14 +19,14 @@ right z = z
 rightUntil, leftUntil :: (a -> Bool) -> Zipper a -> Zipper a
 
 rightUntil f z = until pred right z
-  where pred = \z -> case z of Empty -> True
-                               (Zipper _ _ []) -> True
-                               (Zipper t _ _) -> f t
+  where pred Empty = True
+        pred (Zipper _ _ []) = True
+        pred (Zipper t _ _) = f t
 
 leftUntil f z = until pred left z
-  where pred = \z -> case z of Empty -> True
-                               (Zipper _ [] _) -> True
-                               (Zipper t _ _) -> f t
+  where pred Empty = True
+        pred (Zipper _ [] _) = True
+        pred (Zipper t _ _) = f t
 
 -- | Inserts item after focus and sets as new focus.
 insert :: a -> Zipper a -> Zipper a
