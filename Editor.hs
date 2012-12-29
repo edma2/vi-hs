@@ -5,76 +5,68 @@ import Zipper
 
 type Buf = Zipper Char
 
-data Mode = Normal | Insert
-
 render :: Buf -> String
-render Empty = "~"
+render Empty = ""
 render (Zipper t ls rs) = (reverse ls) ++ (t:rs)
 
 mkBuf :: String -> Buf
 mkBuf = mkZipper
 
 -- | move once
-charNext, charPrev :: Buf -> Buf
-charNext = right
-charPrev = left
+nextChar, prevChar :: Buf -> Buf
+nextChar = right
+prevChar = left
 
-doThenRedraw :: (Buf -> Buf) -> Buf -> IO Buf
-doThenRedraw f buf = do redrawAll buf'
-                        return buf'
-                     where buf' = f buf
+insertChar :: Char -> Buf -> Buf
+insertChar = insert
 
-insertChar :: Char -> Buf -> IO Buf
-insertChar c = doThenRedraw (insert c)
-
-deleteChar :: Buf -> IO Buf
-deleteChar = doThenRedraw delete
-
-redrawAll :: Buf -> IO ()
-redrawAll buf = do wclear stdScr
-                   wAddStr stdScr (render buf)
-                   redrawCursor buf
-
-redrawCursor :: Buf -> IO ()
-redrawCursor buf = do move 0 (col buf)
-                      refresh
+deleteChar :: Buf -> Buf
+deleteChar = delete
 
 -- | find character
 charForward, charBackward :: Char -> Buf -> Buf
 charForward c = rightUntil (== c)
 charBackward c = leftUntil (== c)
 
-startBuf :: Buf
-startBuf = mkBuf "hello world"
+-- | UI
+draw :: Buf -> IO ()
+draw buf = do
+  wclear stdScr
+  wAddStr stdScr (render buf)
+  move 0 (col buf)
+  refresh
 
--- UI
 main :: IO ()
 main = do initCurses
           echo False
-          redrawAll startBuf
-          loop Normal startBuf
+          normalLoop Empty
           endWin
 
 col :: Buf -> Int
 col Empty = 0
 col (Zipper _ ls _) = length ls
 
-loop :: Mode -> Buf -> IO Buf
-loop mode buf = do
-  redrawCursor buf
+normalLoop, insertLoop :: Buf -> IO Buf
+
+normalLoop buf = do
+  draw buf
   (KeyChar c) <- getCh
-  case mode of Normal -> handleNormalMode c buf
-               Insert -> handleInsertMode c buf
+  runCmd c buf
 
-handleNormalMode, handleInsertMode :: Char -> Buf -> IO Buf
+-- | Command definitions
+runCmd :: Char -> Buf -> IO Buf
+runCmd 'h' = normalLoop . prevChar
+runCmd 'l' = normalLoop . nextChar
+runCmd 'x' = normalLoop . deleteChar
+runCmd 'i' = insertLoop . prevChar
+runCmd _ = return -- quit
 
-handleNormalMode c buf = case c of
-  'h' -> loop Normal $ charPrev buf
-  'l' -> loop Normal $ charNext buf
-  'x' -> deleteChar buf >>= loop Normal
-  'i' -> loop Insert buf
-  _ -> return buf
-
-handleInsertMode c buf = case c of
-  '\ESC' -> loop Normal buf
-  _ -> insertChar c buf >>= loop Insert
+insertLoop buf = do
+  draw buf
+  -- when buffer not empty and insert mode
+  -- render cursor to right of actual focus
+  case buf of Empty -> return ()
+              _ -> move 0 (col buf + 1) >> refresh
+  (KeyChar c) <- getCh
+  case c of '\ESC' -> normalLoop buf
+            _ -> insertLoop . insertChar c $ buf
