@@ -28,6 +28,10 @@ forwardChar, backwardChar :: Char -> Buf -> Buf
 forwardChar c = rightUntil (== c)
 backwardChar c = leftUntil (== c)
 
+lastChar, firstChar :: Buf -> Buf
+lastChar = rightUntil $ \_ -> False
+firstChar = leftUntil $ \_ -> False
+
 -- | UI
 draw :: Buf -> IO ()
 draw buf = do
@@ -59,6 +63,9 @@ runCmd 'h' = normalLoop . prevChar
 runCmd 'l' = normalLoop . nextChar
 runCmd 'x' = normalLoop . deleteChar
 runCmd 'i' = insertLoop . prevChar
+runCmd 'a' = insertLoop
+runCmd '0' = normalLoop . firstChar
+runCmd '$' = normalLoop . lastChar
 runCmd _ = return -- quit
 
 insertLoop buf = do
