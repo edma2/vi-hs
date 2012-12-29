@@ -24,9 +24,9 @@ deleteChar :: Buf -> Buf
 deleteChar = delete
 
 -- | find character
-charForward, charBackward :: Char -> Buf -> Buf
-charForward c = rightUntil (== c)
-charBackward c = leftUntil (== c)
+forwardChar, backwardChar :: Char -> Buf -> Buf
+forwardChar c = rightUntil (== c)
+backwardChar c = leftUntil (== c)
 
 -- | UI
 draw :: Buf -> IO ()
